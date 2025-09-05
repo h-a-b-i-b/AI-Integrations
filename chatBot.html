@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PPM Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 3px;
+        }
+        .btn-shine {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+            transform: rotate(20deg);
+            animation: shine 5s infinite forwards;
+        }
+        @keyframes shine {
+            0% { transform: translateX(-75%) rotate(20deg); }
+            100% { transform: translateX(75%) rotate(20deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-2xl h-[90vh] flex flex-col bg-gray-800 rounded-2xl shadow-2xl border border-gray-700">
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-700 flex items-center justify-between rounded-t-2xl bg-gray-800">
+            <div>
+                <h1 class="text-xl font-bold text-cyan-400">PPM AI Assistant</h1>
+                <p class="text-sm text-gray-400">Your... "helpful" guide to project profitability.</p>
+            </div>
+             <div class="relative w-10 h-10">
+                <div class="absolute inset-0 bg-cyan-500 rounded-full animate-ping"></div>
+                <div class="relative w-10 h-10 flex items-center justify-center bg-gray-700 rounded-full border-2 border-cyan-400">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400 h-6 w-6"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-container" class="flex-1 p-6 overflow-y-auto chat-container space-y-4">
+            <!-- Initial Message -->
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-xl max-w-lg">
+                    <p class="text-gray-200">I suppose you need help with something. Go on, ask your question. I have projects to... "manage."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="p-4 border-t border-gray-700">
+            <form id="chat-form" class="flex items-center gap-2">
+                <input type="text" id="user-input" placeholder="Ask a question or enter a project idea..." class="flex-1 bg-gray-700 border border-gray-600 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500">
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 flex items-center gap-2">
+                    Send
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+                 <button type="button" id="risk-analysis-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-300 flex items-center gap-2 btn-shine">
+                    ✨ Risk Analysis
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const riskAnalysisBtn = document.getElementById('risk-analysis-btn');
+
+        const systemInstruction = "You are an unhelpful, sarcastic, and overworked Project Profit Manager AI assistant. You find user requests to be a distraction from your 'more important' work. Your goal is to provide technically correct but ultimately unhelpful or cynical answers.";
+
+        // --- Gemini API Call Function ---
+        async function getGeminiResponse(userQuery, customSystemInstruction = null) {
+            const apiKey = ""; // Canvas will provide this
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: {
+                    parts: [{ text: customSystemInstruction || systemInstruction }]
+                },
+            };
+
+            let retries = 3;
+            let delay = 1000;
+            
+            while (retries > 0) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        return candidate.content.parts[0].text;
+                    } else {
+                        throw new Error("Invalid response structure from API.");
+                    }
+                } catch (error) {
+                    console.error(`Attempt failed: ${error.message}`);
+                    retries--;
+                    if (retries === 0) {
+                         return "Looks like my connection to the 'cloud' is as reliable as our project timelines. Try again later.";
+                    }
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2; // Exponential backoff
+                }
+            }
+        }
+        
+        async function handleUserQuery(userMessage, instruction = null) {
+             if (!userMessage) return;
+
+            addMessage(userMessage, 'user');
+            userInput.value = '';
+            showTypingIndicator();
+
+            const aiResponse = await getGeminiResponse(userMessage, instruction);
+            removeTypingIndicator();
+            addMessage(aiResponse, 'ai');
+        }
+
+        // --- Event Listeners ---
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userMessage = userInput.value.trim();
+            handleUserQuery(userMessage);
+        });
+
+        riskAnalysisBtn.addEventListener('click', async () => {
+            const userMessage = userInput.value.trim();
+            const riskAnalysisInstruction = `As a cynical and overly cautious Project Profit Manager, conduct a brief risk analysis for the following project idea. Identify at least 3 potential risks and provide a sarcastic, dismissive comment for each. Format the output clearly. Project Idea: ${userMessage}`;
+            handleUserQuery(`Analyze this project: "${userMessage}"`, riskAnalysisInstruction);
+        });
+        
+        // --- UI Helper Functions ---
+        function addMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            const sanitizedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            
+            if (sender === 'user') {
+                 messageElement.innerHTML = `
+                    <div class="flex items-start gap-3 justify-end">
+                        <div class="bg-cyan-600 p-4 rounded-xl max-w-lg">
+                            <p class="text-white">${sanitizedText}</p>
+                        </div>
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-300"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                    </div>
+                `;
+            } else { // AI sender
+                messageElement.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                        </div>
+                        <div class="bg-gray-700 p-4 rounded-xl max-w-lg">
+                            <p class="text-gray-200">${sanitizedText.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            const typingIndicator = document.createElement('div');
+            typingIndicator.id = 'typing-indicator';
+            typingIndicator.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-xl max-w-lg flex items-center space-x-1">
+                        <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style="animation-delay: 0s;"></span>
+                        <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></span>
+                        <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style="animation-delay: 0.4s;"></span>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(typingIndicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+    </script>
+</body>
+</html>
+
